@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Modelling & Multi-Stock Risk-Return Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            900: '#14532d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans h-full antialiased selection:bg-emerald-500 selection:text-white">
+    <!-- Main App Container -->
+    <div class="flex h-screen overflow-hidden">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between hidden md:flex">
+            <div>
+                <!-- Brand Header -->
+                <div class="p-6 border-b border-slate-800 flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-xl">
+                        <i class="fa-solid fa-chart-line"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-slate-100 tracking-tight">QuantEDA</h1>
+                        <p class="text-xs text-slate-400 font-mono">VIT Vellore · 25BDS0164</p>
+                    </div>
+                </div>
+
+                <!-- Navigation Links -->
+                <nav class="p-4 space-y-1">
+                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        <i class="fa-solid fa-gauge-high w-5"></i>
+                        <span>Overview Dashboard</span>
+                    </button>
+                    <button onclick="switchTab('stocks')" id="nav-stocks" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/60">
+                        <i class="fa-solid fa-layer-group w-5"></i>
+                        <span>Stock Analysis</span>
+                    </button>
+                    <button onclick="switchTab('correlation')" id="nav-correlation" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/60">
+                        <i class="fa-solid fa-network-wired w-5"></i>
+                        <span>Correlation Matrix</span>
+                    </button>
+                    <button onclick="switchTab('insights')" id="nav-insights" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/60">
+                        <i class="fa-solid fa-lightbulb w-5"></i>
+                        <span>Key EDA Findings</span>
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Student Info Footer -->
+            <div class="p-4 border-t border-slate-800 bg-slate-900/50">
+                <div class="text-xs text-slate-400 space-y-1">
+                    <p class="font-semibold text-slate-300">Parth · B.Tech CSDS</p>
+                    <p>3,780 Records · 5 Sectors</p>
+                    <div class="flex items-center space-x-2 pt-2 text-[10px] text-emerald-400 font-mono">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span>Dataset: 2023–2026 Active</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Content Area -->
+        <div class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+            
+            <!-- Top Navbar -->
+            <header class="h-16 bg-slate-900/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-20 px-6 flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <button class="md:hidden text-slate-400 hover:text-slate-100" onclick="toggleMobileMenu()">
+                        <i class="fa-solid fa-bars text-lg"></i>
+                    </button>
+                    <h2 id="page-title" class="text-lg font-semibold text-slate-100">Overview Dashboard</h2>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <span class="px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-full text-xs font-mono font-medium">
+                        Sharpe Risk Model Active
+                    </span>
+                    <button onclick="triggerNotification('Data sync complete. 3,780 records validated.')" class="w-9 h-9 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 hover:text-white hover:border-slate-600 transition-colors">
+                        <i class="fa-solid fa-rotate"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Main View Port -->
+            <main class="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
+                
+                <!-- TAB 1: OVERVIEW DASHBOARD -->
+                <div id="view-dashboard" class="space-y-6">
+                    <!-- Metric Cards Row -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl relative overflow-hidden group hover:border-slate-700 transition-all">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Top Performing Asset</p>
+                                    <h3 class="text-2xl font-bold text-emerald-400 mt-1 font-mono">TECHNOVA</h3>
+                                </div>
+                                <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                                    <i class="fa-solid fa-arrow-trend-up"></i>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-3 flex items-center justify-between">
+                                <span>Annualised Return</span>
+                                <span class="font-mono font-semibold text-emerald-400">+79.7%</span>
+                            </p>
+                            <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-400"></div>
+                        </div>
+
+                        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl relative overflow-hidden group hover:border-slate-700 transition-all">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Safest Defensive Stock</p>
+                                    <h3 class="text-2xl font-bold text-amber-400 mt-1 font-mono">CONSUFAST</h3>
+                                </div>
+                                <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                                    <i class="fa-solid fa-shield-halved"></i>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-3 flex items-center justify-between">
+                                <span>Annualised Volatility</span>
+                                <span class="font-mono font-semibold text-amber-400">21.0%</span>
+                            </p>
+                            <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 to-orange-400"></div>
+                        </div>
+
+                        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl relative overflow-hidden group hover:border-slate-700 transition-all">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Lowest Correlation Pair</p>
+                                    <h3 class="text-2xl font-bold text-sky-400 mt-1 font-mono">0.03</h3>
+                                </div>
+                                <div class="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+                                    <i class="fa-solid fa-shuffle"></i>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-3 flex items-center justify-between">
+                                <span>Consufast + Medicure</span>
+                                <span class="font-mono font-semibold text-sky-400">Optimal Diversifier</span>
+                            </p>
+                            <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-sky-500 to-blue-400"></div>
+                        </div>
+
+                        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl relative overflow-hidden group hover:border-slate-700 transition-all">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Dataset Volume</p>
+                                    <h3 class="text-2xl font-bold text-indigo-400 mt-1 font-mono">3,780</h3>
+                                </div>
+                                <div class="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                                    <i class="fa-solid fa-database"></i>
+                                </div>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-3 flex items-center justify-between">
+                                <span>Trading Days / Records</span>
+                                <span class="font-mono font-semibold text-indigo-400">756 Days · 5 Stocks</span>
+                            </p>
+                            <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-purple-400"></div>
+                        </div>
+                    </div>
+
+                    <!-- Main Charts Section -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Price Trends Chart (Spans 2 cols) -->
+                        <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-800 gap-2">
+                                <div>
+                                    <h3 class="font-semibold text-slate-100">Closing Price Trajectory (2023–2026)</h3>
+                                    <p class="text-xs text-slate-400">Normalized daily closing prices across 5 sectors</p>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <button onclick="updatePriceChart('raw')" id="btn-raw" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 transition-all">Raw Price (₹)</button>
+                                    <button onclick="updatePriceChart('norm')" id="btn-norm" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700 transition-all">Normalized Base 100</button>
+                                </div>
+                            </div>
+                            <div class="relative flex-1 min-h-[340px] pt-4">
+                                <canvas id="priceChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Risk vs Return Scatter Card -->
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col">
+                            <div class="pb-4 border-b border-slate-800">
+                                <h3 class="font-semibold text-slate-100">Risk vs. Return Profile</h3>
+                                <p class="text-xs text-slate-400">Annualised Volatility vs. Return (%)</p>
+                            </div>
+                            <div class="relative flex-1 min-h-[340px] pt-4">
+                                <canvas id="riskReturnChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Summary Table Preview -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+                        <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+                            <div>
+                                <h3 class="font-semibold text-slate-100">Comprehensive Stock Performance Matrix</h3>
+                                <p class="text-xs text-slate-400">Calculated over 3 years of daily trading records (Rf = 5% p.a.)</p>
+                            </div>
+                            <button onclick="switchTab('stocks')" class="text-xs text-emerald-400 hover:text-emerald-300 font-medium flex items-center space-x-1">
+                                <span>Detailed Stock View</span>
+                                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto pt-4">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="border-b border-slate-800 text-xs font-medium text-slate-400">
+                                        <th class="pb-3 px-4">Ticker</th>
+                                        <th class="pb-3 px-4">Sector</th>
+                                        <th class="pb-3 px-4 text-right">Ann. Return</th>
+                                        <th class="pb-3 px-4 text-right">Ann. Volatility</th>
+                                        <th class="pb-3 px-4 text-right">Sharpe Ratio</th>
+                                        <th class="pb-3 px-4 text-right">Max Drawdown</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-800/60 text-sm font-mono">
+                                    <tr class="hover:bg-slate-800/40 transition-colors">
+                                        <td class="py-3 px-4 font-semibold text-emerald-400 flex items-center space-x-2">
+                                            <span class="w-2.5 h-2.5 rounded-full bg-lime-400"></span>
+                                            <span>TECHNOVA</span>
+                                        </td>
+                                        <td class="py-3 px-4 text-slate-300 font-sans text-xs">Technology</td>
+                                        <td class="py-3 px-4 text-right text-emerald-400">+79.7%</td>
+                                        <td class="py-3 px-4 text-right text-slate-300">37.8%</td>
+                                        <td class="py-3 px-4 text-right text-emerald-400 font-bold">1.98</td>
+                                        <td class="py-3 px-4 text-right text-rose-400">-28.6%</td>
+                                    </tr>
+                                    <tr class="hover:bg-slate-800/40 transition-colors">
+                                        <td class="py-3 px-4 font-semibold text-pink-400 flex items-center space-x-2">
+                                            <span class="w-2.5 h-2.5 rounded-full bg-pink-400"></span>
+                                            <span>PETROMAX</span>
+                                        </td>
+                                        <td class="py-3 px-4 text-slate-300 font-sans text-xs">Energy</td>
+                                        <td class="py-3 px-4 text-right text-rose-400">-0.9%</td>
+                                        <td class="py-3 px-4 text-right text-slate-300">34.2%</td>
+                                        <td class="py-3 px-4 text-right text-rose-400">-0.18</td>
+                                        <td class="py-3 px-4 text-right text-rose-400">-34.1%</td>
+                                    </tr>
+                                    <tr class="hover:bg-slate-800/40 transition-colors">
+                                        <td class="py-3 px-4 font-semibold text-indigo-400 flex items-center space-x-2">
+                                            <span class="w-2.5 h-2.5 rounded-full bg-indigo-400"></span>
+                                            <span>MEDICURE</span>
+                                        </td>
+                                        <td class="py-3 px-4 text-slate-300 font-sans text-xs">Pharma</td>
+                                        <td class="py-3 px-4 text-right text-rose-400">-3.0%</td>
+                                        <td class="py-3 px-4 text-right text-slate-300">29.6%</td>
+                                        <td class="py-3 px-4 text-right text-rose-400">-0.27</td>
+                                        <td class="py-3 px-4 text-right text-rose-400">-29.5%</td>
+                                    </tr>
+                                    <tr class="hover:bg-slate-800/40 transition-colors">
+                                        <td class="py-3 px-4 font-semibold text-teal-400 flex items-center space-x-2">
+                                            <span class="w-2.5 h-2.5 rounded-full bg-teal-400"></span>
+                                            <span>AGROBANK</span>
+                                        </td>
+                                        <td class="py-3 px-4 text-slate-300 font-sans text-xs">Banking</td>
+                                        <td class="py-3 px-4 text-right text-rose-400">-4.3%</td>
+                                        <td class="py-3 px-4 text-right text-slate-300">29.0%</td>
+                                        <td class="py-3 px-4 text-right text-rose-400">-0.32</td>
+                                        <td class="py-3 px-4 text-right text-rose-400">-31.2%</td>
+                                    </tr>
+                                    <tr class="hover:bg-slate-800/40 transition-colors">
+                                        <td class="py-3 px-4 font-semibold text-orange-400 flex items-center space-x-2">
+                                            <span class="w-2.5 h-2.5 rounded-full bg-orange-400"></span>
+                                            <span>CONSUFAST</span>
+                                        </td>
+                                        <td class="py-3 px-4 text-slate-300 font-sans text-xs">FMCG</td>
+                                        <td class="py-3 px-4 text-right text-rose-400">-8.7%</td>
+                                        <td class="py-3 px-4 text-right text-slate-300">21.0%</td>
+                                        <td class="py-3 px-4 text-right text-rose-400">-0.65</td>
+                                        <td class="py-3 px-4 text-right text-rose-400">-22.4%</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: STOCK ANALYSIS -->
+                <div id="view-stocks" class="space-y-6 hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Stock Selector Panel -->
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+                            <h3 class="font-semibold text-slate-100">Select Asset</h3>
+                            <p class="text-xs text-slate-400">Click any stock to inspect granular quantitative metrics and return distribution behaviour.</p>
+                            
+                            <div class="space-y-2 pt-2" id="stock-btn-list">
+                                <button onclick="selectStock('TECHNOVA')" id="sbtn-TECHNOVA" class="w-full text-left p-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 flex items-center justify-between transition-all">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-3 h-3 rounded-full bg-lime-400"></div>
+                                        <div>
+                                            <p class="font-bold text-slate-100 font-mono">TECHNOVA</p>
+                                            <p class="text-xs text-slate-400">Technology Sector</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-xs font-mono font-semibold text-emerald-400">+79.7% p.a.</span>
+                                </button>
+
+                                <button onclick="selectStock('PETROMAX')" id="sbtn-PETROMAX" class="w-full text-left p-4 rounded-xl border border-slate-800 bg-slate-800/40 flex items-center justify-between hover:bg-slate-800 transition-all">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-3 h-3 rounded-full bg-pink-400"></div>
+                                        <div>
+                                            <p class="font-bold text-slate-100 font-mono">PETROMAX</p>
+                                            <p class="text-xs text-slate-400">Energy Sector</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-xs font-mono font-semibold text-rose-400">-0.9% p.a.</span>
+                                </button>
+
+                                <button onclick="selectStock('MEDICURE')" id="sbtn-MEDICURE" class="w-full text-left p-4 rounded-xl border border-slate-800 bg-slate-800/40 flex items-center justify-between hover:bg-slate-800 transition-all">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-3 h-3 rounded-full bg-indigo-400"></div>
+                                        <div>
+                                            <p class="font-bold text-slate-100 font-mono">MEDICURE</p>
+                                            <p class="text-xs text-slate-400">Pharma Sector</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-xs font-mono font-semibold text-rose-400">-3.0% p.a.</span>
+                                </button>
+
+                                <button onclick="selectStock('AGROBANK')" id="sbtn-AGROBANK" class="w-full text-left p-4 rounded-xl border border-slate-800 bg-slate-800/40 flex items-center justify-between hover:bg-slate-800 transition-all">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-3 h-3 rounded-full bg-teal-400"></div>
+                                        <div>
+                                            <p class="font-bold text-slate-100 font-mono">AGROBANK</p>
+                                            <p class="text-xs text-slate-400">Banking Sector</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-xs font-mono font-semibold text-rose-400">-4.3% p.a.</span>
+                                </button>
+
+                                <button onclick="selectStock('CONSUFAST')" id="sbtn-CONSUFAST" class="w-full text-left p-4 rounded-xl border border-slate-800 bg-slate-800/40 flex items-center justify-between hover:bg-slate-800 transition-all">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-3 h-3 rounded-full bg-orange-400"></div>
+                                        <div>
+                                            <p class="font-bold text-slate-100 font-mono">CONSUFAST</p>
+                                            <p class="text-xs text-slate-400">FMCG Sector</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-xs font-mono font-semibold text-rose-400">-8.7% p.a.</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Stock Detail Panel -->
+                        <div class="lg:col-span-2 space-y-6">
+                            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6">
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-800 gap-4">
+                                    <div>
+                                        <div class="flex items-center space-x-2">
+                                            <h3 id="detail-ticker" class="text-xl font-bold font-mono text-slate-100">TECHNOVA</h3>
+                                            <span id="detail-sector" class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Technology</span>
+                                        </div>
+                                        <p class="text-xs text-slate-400 mt-1">3-Year Daily Statistical Profile & Distribution Analysis</p>
+                                    </div>
+                                    <div class="text-right font-mono">
+                                        <p class="text-xs text-slate-400">Sharpe Ratio</p>
+                                        <p id="detail-sharpe" class="text-xl font-bold text-emerald-400">1.98</p>
+                                    </div>
+                                </div>
+
+                                <!-- Key Stats Grid -->
+                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 font-mono">
+                                    <div class="bg-slate-800/40 p-4 rounded-xl border border-slate-800">
+                                        <p class="text-xs text-slate-400 font-sans">Ann. Return</p>
+                                        <p id="detail-return" class="text-lg font-bold text-emerald-400 mt-1">+79.7%</p>
+                                    </div>
+                                    <div class="bg-slate-800/40 p-4 rounded-xl border border-slate-800">
+                                        <p class="text-xs text-slate-400 font-sans">Ann. Volatility</p>
+                                        <p id="detail-vol" class="text-lg font-bold text-slate-200 mt-1">37.8%</p>
+                                    </div>
+                                    <div class="bg-slate-800/40 p-4 rounded-xl border border-slate-800">
+                                        <p class="text-xs text-slate-400 font-sans">Max Drawdown</p>
+                                        <p id="detail-mdd" class="text-lg font-bold text-rose-400 mt-1">-28.6%</p>
+                                    </div>
+                                    <div class="bg-slate-800/40 p-4 rounded-xl border border-slate-800">
+                                        <p class="text-xs text-slate-400 font-sans">Excess Kurtosis</p>
+                                        <p id="detail-kurt" class="text-lg font-bold text-amber-400 mt-1">4.2x</p>
+                                    </div>
+                                </div>
+
+                                <!-- Distribution Histogram Preview -->
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <h4 class="text-sm font-semibold text-slate-200">Daily Return Distribution & Fat Tails</h4>
+                                        <span class="text-xs text-slate-400 font-mono">Normal Curve Comparison</span>
+                                    </div>
+                                    <div class="relative h-[220px]">
+                                        <canvas id="stockDistChart"></canvas>
+                                    </div>
+                                </div>
+
+                                <!-- EDA Note Box -->
+                                <div class="p-4 rounded-xl bg-slate-800/30 border border-slate-800 flex items-start space-x-3">
+                                    <i class="fa-solid fa-circle-info text-emerald-400 mt-0.5"></i>
+                                    <div class="text-xs text-slate-300 leading-relaxed">
+                                        <span class="font-semibold text-slate-100">Quantitative Insight: </span>
+                                        <span id="detail-insight">TECHNOVA exhibits massive positive growth drift, outperforming all other peers with a Sharpe ratio of 1.98 despite higher annualized volatility (37.8%).</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: CORRELATION MATRIX -->
+                <div id="view-correlation" class="space-y-6 hidden">
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-800 gap-2">
+                            <div>
+                                <h3 class="font-semibold text-slate-100">Pairwise Pearson Correlation of Daily Returns</h3>
+                                <p class="text-xs text-slate-400">Measuring co-movement across sectors to evaluate portfolio diversification benefits</p>
+                            </div>
+                            <span class="px-3 py-1 bg-sky-500/10 border border-sky-500/30 text-sky-400 rounded-full text-xs font-mono">
+                                Range: 0.03 to 0.26
+                            </span>
+                        </div>
+
+                        <!-- Heatmap Grid Representation -->
+                        <div class="overflow-x-auto pt-2">
+                            <table class="w-full text-center border-collapse font-mono text-sm">
+                                <thead>
+                                    <tr class="text-xs text-slate-400 border-b border-slate-800">
+                                        <th class="p-4 text-left font-medium">Ticker</th>
+                                        <th class="p-4 font-medium">AGROBANK</th>
+                                        <th class="p-4 font-medium">CONSUFAST</th>
+                                        <th class="p-4 font-medium">MEDICURE</th>
+                                        <th class="p-4 font-medium">PETROMAX</th>
+                                        <th class="p-4 font-medium">TECHNOVA</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-800/60">
+                                    <tr>
+                                        <td class="p-4 text-left font-semibold text-teal-400">AGROBANK</td>
+                                        <td class="p-4 bg-rose-600/40 text-white font-bold">1.00</td>
+                                        <td class="p-4 bg-slate-800/40 text-slate-300">0.09</td>
+                                        <td class="p-4 bg-slate-800/40 text-slate-300">0.17</td>
+                                        <td class="p-4 bg-slate-800/40 text-slate-300">0.14</td>
+                                        <td class="p-4 bg-amber-600/20 text-slate-200">0.26</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-4 text-left font-semibold text-orange-400">CONSUFAST</td>
+                                        <td class="p-4 bg-slate-800/40 text-slate-300">0.09</td>
+                                        <td class="p-4 bg-rose-600/40 text-white font-bold">1.00</td>
+                                        <td class="p-4 bg-sky-600/30 text-sky-300 font-bold border border-sky-500/50">0.03</td>
+                                        <td class="p-4 bg-slate-800/40 text-slate-300">0.09</td>
+                                        <td class="p-4 bg-slate-800/40 text-slate-300">0.14</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-4 text-left font-semibold text-indigo-400">MEDICURE</td>
+                                        <td class="p-4 bg-slate-800/40 text-slate-300">0.17</td>
+                                        <td class="p-4 bg-sky-600/30 text-sky-300 font-bold border border-sky-500/50">0.03</td>
+                                        <td class="p-4 bg-rose-600/40 text-white font-bold">1.00</td>
+                                        <td class="p-4 bg-slate-800/40 text-slate-300">0.16</td>
+                                        <td class="p-4 bg-slate-800/40 text-slate-300">0.17</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-4 text-left font-semibold text-pink-400">PETROMAX</td>
+                                        <td class="p-4 bg-slate-800/40 text-slate-300">0.14</td>
+                                        <td class="p-4 bg-slate-800/40 text-slate-300">0.09</td>
+                                        <td class="p-4 bg-slate-800/40 text-slate-300">0.16</td>
+                                        <td class="p-4 bg-rose-600/40 text-white font-bold">1.00</td>
+                                        <td class="p-4 bg-slate-800/40 text-slate-300">0.09</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="p-4 text-left font-semibold text-lime-400">TECHNOVA</td>
+                                        <td class="p-4 bg-amber-600/20 text-slate-200">0.26</td>
+                                        <td class="p-4 bg-slate-800/40 text-slate-300">0.14</td>
+                                        <td class="p-4 bg-slate-800/40 text-slate-300">0.17</td>
+                                        <td class="p-4 bg-slate-800/40 text-slate-300">0.09</td>
+                                        <td class="p-4 bg-rose-600/40 text-white font-bold">1.00</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Takeaway Box -->
+                        <div class="p-5 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-start space-x-3">
+                            <i class="fa-solid fa-lightbulb text-sky-400 text-lg mt-0.5"></i>
+                            <div class="space-y-1 text-sm text-slate-300">
+                                <p class="font-semibold text-slate-100">Diversification Takeaway</p>
+                                <p class="leading-relaxed">All pair correlations sit in a very weak band between 0.03 and 0.26. Most notably, pairing <span class="text-sky-400 font-mono font-bold">CONSUFAST</span> and <span class="text-sky-400 font-mono font-bold">MEDICURE</span> at <span class="font-mono font-bold text-sky-400">r = 0.03</span> offers exceptional empirical potential for portfolio variance reduction without sacrificing expected return.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 4: KEY FINDINGS -->
+                <div id="view-insights" class="space-y-6 hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        
+                        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-3 relative overflow-hidden group hover:border-slate-700 transition-all">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                                <i class="fa-solid fa-scale-balanced"></i>
+                            </div>
+                            <h4 class="font-bold text-slate-100 text-lg">1. Risk ≠ Reward</h4>
+                            <p class="text-xs text-slate-400 leading-relaxed">The riskiest stock by absolute volatility wasn't the top performer. While <span class="text-slate-200 font-mono">PETROMAX</span> had high volatility (34.2%), it yielded a negative return (-0.9%), proving volatility alone doesn't guarantee premium return.</p>
+                            <div class="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500"></div>
+                        </div>
+
+                        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-3 relative overflow-hidden group hover:border-slate-700 transition-all">
+                            <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                                <i class="fa-solid fa-bell-slash"></i>
+                            </div>
+                            <h4 class="font-bold text-slate-100 text-lg">2. Fat-Tailed Returns</h4>
+                            <p class="text-xs text-slate-400 leading-relaxed">Every stock exhibited leptokurtic distributions with heavier tails than standard Gaussian models predict. <span class="text-slate-200 font-mono">CONSUFAST</span> recorded the highest excess kurtosis (6.3x), signaling frequent tail risk.</p>
+                            <div class="absolute bottom-0 left-0 right-0 h-1 bg-amber-500"></div>
+                        </div>
+
+                        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-3 relative overflow-hidden group hover:border-slate-700 transition-all">
+                            <div class="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+                                <i class="fa-solid fa-puzzle-piece"></i>
+                            </div>
+                            <h4 class="font-bold text-slate-100 text-lg">3. Diversification Works</h4>
+                            <p class="text-xs text-slate-400 leading-relaxed">Low cross-asset correlations (0.03 to 0.26) across the 5 sectors provide measurable empirical proof for Markowitz modern portfolio theory, effectively dampening portfolio risk.</p>
+                            <div class="absolute bottom-0 left-0 right-0 h-1 bg-sky-500"></div>
+                        </div>
+
+                        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-3 relative overflow-hidden group hover:border-slate-700 transition-all">
+                            <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+                                <i class="fa-solid fa-bolt"></i>
+                            </div>
+                            <h4 class="font-bold text-slate-100 text-lg">4. Volume Predicts Shocks</h4>
+                            <p class="text-xs text-slate-400 leading-relaxed">Cross-referencing abnormal daily price moves revealed that every extreme outlier return day consistently coincided with 2x to 4x surges in average trading volume.</p>
+                            <div class="absolute bottom-0 left-0 right-0 h-1 bg-purple-500"></div>
+                        </div>
+
+                        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-3 relative overflow-hidden group hover:border-slate-700 transition-all">
+                            <div class="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
+                                <i class="fa-solid fa-chart-line-down"></i>
+                            </div>
+                            <h4 class="font-bold text-slate-100 text-lg">5. Drawdowns Hurt Everyone</h4>
+                            <p class="text-xs text-slate-400 leading-relaxed">Even the star performer <span class="text-slate-200 font-mono">TECHNOVA</span>—which rallied nearly 9x—suffered a severe peak-to-trough maximum drawdown of <span class="text-rose-400 font-mono">-28.6%</span> during market corrections.</p>
+                            <div class="absolute bottom-0 left-0 right-0 h-1 bg-rose-500"></div>
+                        </div>
+
+                        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-3 relative overflow-hidden group hover:border-slate-700 transition-all">
+                            <div class="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                                <i class="fa-solid fa-wave-square"></i>
+                            </div>
+                            <h4 class="font-bold text-slate-100 text-lg">6. Volatility Clustering</h4>
+                            <p class="text-xs text-slate-400 leading-relaxed">Financial volatility is non-constant over time (heteroskedasticity). Large price variations tend to cluster around earnings and news cycles rather than occurring randomly.</p>
+                            <div class="absolute bottom-0 left-0 right-0 h-1 bg-indigo-500"></div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-6 right-6 bg-slate-900 border border-emerald-500/40 text-slate-100 px-5 py-3 rounded-xl shadow-2xl flex items-center space-x-3 transform translate-y-24 opacity-0 transition-all duration-300 z-50">
+        <div class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs">
+            <i class="fa-solid fa-check"></i>
+        </div>
+        <span id="toast-message" class="text-xs font-medium">Notification message</span>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // State Management
+        let currentTab = 'dashboard';
+        let priceMode = 'raw';
+        let selectedStockKey = 'TECHNOVA';
+
+        // Stock Data Store
+        const stockDatabase = {
+            TECHNOVA: { name: 'TECHNOVA', sector: 'Technology', return: '+79.7%', vol: '37.8%', sharpe: '1.98', mdd: '-28.6%', kurt: '4.2x', insight: 'TECHNOVA exhibits massive positive growth drift, outperforming all other peers with a Sharpe ratio of 1.98 despite higher annualized volatility (37.8%).' },
+            PETROMAX: { name: 'PETROMAX', sector: 'Energy', return: '-0.9%', vol: '34.2%', sharpe: '-0.18', mdd: '-34.1%', kurt: '3.8x', insight: 'PETROMAX demonstrates high volatility without positive return drift, resulting in an unfavorable Sharpe ratio of -0.18.' },
+            MEDICURE: { name: 'MEDICURE', sector: 'Pharma', return: '-3.0%', vol: '29.6%', sharpe: '-0.27', mdd: '-29.5%', kurt: '5.1x', insight: 'MEDICURE offers moderate defensive characteristics with 29.6% volatility, though negative drift yields a -0.27 Sharpe ratio.' },
+            AGROBANK: { name: 'AGROBANK', sector: 'Banking', return: '-4.3%', vol: '29.0%', sharpe: '-0.32', mdd: '-31.2%', kurt: '4.9x', insight: 'AGROBANK displays steady banking sector co-movement with stable volatility around 29.0% and mild negative drift.' },
+            CONSUFAST: { name: 'CONSUFAST', sector: 'FMCG', return: '-8.7%', vol: '21.0%', sharpe: '-0.65', mdd: '-22.4%', kurt: '6.3x', insight: 'CONSUFAST possesses the lowest absolute volatility (21.0%) matching defensive FMCG profile, but highest excess kurtosis (6.3x).' }
+        };
+
+        // Tab Switching Logic
+        function switchTab(tabId) {
+            currentTab = tabId;
+            ['dashboard', 'stocks', 'correlation', 'insights'].forEach(t => {
+                document.getElementById(`view-${t}`).classList.add('hidden');
+                const navBtn = document.getElementById(`nav-${t}`);
+                if(navBtn) {
+                    navBtn.className = "w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-slate-800/60";
+                }
+            });
+
+            document.getElementById(`view-${tabId}`).classList.remove('hidden');
+            const activeNav = document.getElementById(`nav-${tabId}`);
+            if(activeNav) {
+                activeNav.className = "w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+            }
+
+            // Update title
+            const titles = {
+                dashboard: 'Overview Dashboard',
+                stocks: 'Stock Analysis & Distributions',
+                correlation: 'Correlation Matrix & Diversification',
+                insights: 'Key EDA Findings & Takeaways'
+            };
+            document.getElementById('page-title').innerText = titles[tabId];
+
+            // Re-render charts if needed
+            if(tabId === 'dashboard') {
+                priceChart.update();
+                riskReturnChart.update();
+            } else if(tabId === 'stocks') {
+                stockDistChart.update();
+            }
+        }
+
+        function toggleMobileMenu() {
+            triggerNotification('Mobile menu toggled.');
+        }
+
+        function triggerNotification(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').innerText = msg;
+            toast.classList.remove('translate-y-24', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-24', 'opacity-0');
+            }, 3000);
+        }
+
+        // Initialize Charts on Window Load
+        let priceChart, riskReturnChart, stockDistChart;
+
+        window.onload = function() {
+            // 1. Price Chart Setup
+            const ctxPrice = document.getElementById('priceChart').getContext('2d');
+            priceChart = new Chart(ctxPrice, {
+                type: 'line',
+                data: {
+                    labels: ['Jan 23', 'May 23', 'Sep 23', 'Jan 24', 'May 24', 'Sep 24', 'Jan 25', 'May 25', 'Sep 25', 'Dec 25'],
+                    datasets: [
+                        {
+                            label: 'TECHNOVA (Tech)',
+                            data: [850, 920, 1750, 2400, 3500, 4800, 4600, 4200, 5800, 7500],
+                            borderColor: '#a3e635',
+                            backgroundColor: 'rgba(163, 230, 53, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'PETROMAX (Energy)',
+                            data: [1450, 1050, 1250, 1200, 1400, 1250, 1200, 1400, 1100, 1150],
+                            borderColor: '#f472b6',
+                            borderWidth: 1.5,
+                            tension: 0.3,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'MEDICURE (Pharma)',
+                            data: [980, 1020, 900, 950, 980, 850, 880, 1000, 820, 780],
+                            borderColor: '#818cf8',
+                            borderWidth: 1.5,
+                            tension: 0.3,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'AGROBANK (Banking)',
+                            data: [650, 580, 550, 530, 480, 580, 650, 550, 480, 500],
+                            borderColor: '#2dd4bf',
+                            borderWidth: 1.5,
+                            tension: 0.3,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'CONSUFAST (FMCG)',
+                            data: [380, 310, 350, 320, 290, 300, 280, 300, 320, 290],
+                            borderColor: '#fb923c',
+                            borderWidth: 1.5,
+                            tension: 0.3,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#94a3b8', font: { family: 'Inter', size: 11 } }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { color: 'rgba(51, 65, 85, 0.3)' }, ticks: { color: '#64748b' } },
+                        y: { grid: { color: 'rgba(51, 65, 85, 0.3)' }, ticks: { color: '#64748b' } }
+                    }
+                }
+            });
+
+            // 2. Risk vs Return Scatter Setup
+            const ctxRisk = document.getElementById('riskReturnChart').getContext('2d');
+            riskReturnChart = new Chart(ctxRisk, {
+                type: 'scatter',
+                data: {
+                    datasets: [
+                        { label: 'TECHNOVA', data: [{x: 37.8, y: 79.7}], backgroundColor: '#a3e635', pointRadius: 10 },
+                        { label: 'PETROMAX', data: [{x: 34.2, y: -0.9}], backgroundColor: '#f472b6', pointRadius: 7 },
+                        { label: 'MEDICURE', data: [{x: 29.6, y: -3.0}], backgroundColor: '#818cf8', pointRadius: 7 },
+                        { label: 'AGROBANK', data: [{x: 29.0, y: -4.3}], backgroundColor: '#2dd4bf', pointRadius: 7 },
+                        { label: 'CONSUFAST', data: [{x: 21.0, y: -8.7}], backgroundColor: '#fb923c', pointRadius: 7 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 } } }
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Ann. Volatility (%)', color: '#94a3b8' }, grid: { color: 'rgba(51, 65, 85, 0.3)' }, ticks: { color: '#64748b' } },
+                        y: { title: { display: true, text: 'Ann. Return (%)', color: '#94a3b8' }, grid: { color: 'rgba(51, 65, 85, 0.3)' }, ticks: { color: '#64748b' } }
+                    }
+                }
+            });
+
+            // 3. Stock Distribution Chart Setup
+            const ctxDist = document.getElementById('stockDistChart').getContext('2d');
+            stockDistChart = new Chart(ctxDist, {
+                type: 'bar',
+                data: {
+                    labels: ['-6%', '-4%', '-2%', '0%', '+2%', '+4%', '+6%'],
+                    datasets: [
+                        {
+                            label: 'Actual Returns',
+                            data: [5, 18, 45, 60, 48, 20, 6],
+                            backgroundColor: 'rgba(34, 197, 94, 0.6)',
+                            borderColor: 'rgba(34, 197, 94, 1)',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#64748b' } },
+                        y: { grid: { color: 'rgba(51, 65, 85, 0.3)' }, ticks: { color: '#64748b' } }
+                    }
+                }
+            });
+        };
+
+        // Price Chart Mode Switcher
+        function updatePriceChart(mode) {
+            priceMode = mode;
+            const btnRaw = document.getElementById('btn-raw');
+            const btnNorm = document.getElementById('btn-norm');
+            
+            if(mode === 'raw') {
+                btnRaw.className = "px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 transition-all";
+                btnNorm.className = "px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700 transition-all";
+                priceChart.data.datasets[0].data = [850, 920, 1750, 2400, 3500, 4800, 4600, 4200, 5800, 7500];
+                priceChart.data.datasets[1].data = [1450, 1050, 1250, 1200, 1400, 1250, 1200, 1400, 1100, 1150];
+                priceChart.data.datasets[2].data = [980, 1020, 900, 950, 980, 850, 880, 1000, 820, 780];
+                priceChart.data.datasets[3].data = [650, 580, 550, 530, 480, 580, 650, 550, 480, 500];
+                priceChart.data.datasets[4].data = [380, 310, 350, 320, 290, 300, 280, 300, 320, 290];
+                triggerNotification('Switched to Raw Closing Prices (₹)');
+            } else {
+                btnNorm.className = "px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 transition-all";
+                btnRaw.className = "px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700 transition-all";
+                priceChart.data.datasets[0].data = [100, 108, 205, 282, 411, 564, 541, 494, 682, 882];
+                priceChart.data.datasets[1].data = [100, 72, 86, 82, 96, 86, 82, 96, 75, 79];
+                priceChart.data.datasets[2].data = [100, 104, 91, 96, 100, 86, 89, 102, 83, 79];
+                priceChart.data.datasets[3].data = [100, 89, 84, 81, 73, 89, 100, 84, 73, 76];
+                priceChart.data.datasets[4].data = [100, 81, 92, 84, 76, 78, 73, 78, 84, 76];
+                triggerNotification('Normalized Base 100 applied for cross-comparison.');
+            }
+            priceChart.update();
+        }
+
+        // Stock Selection Handler
+        function selectStock(key) {
+            selectedStockKey = key;
+            const data = stockDatabase[key];
+
+            // Highlight button
+            ['TECHNOVA', 'PETROMAX', 'MEDICURE', 'AGROBANK', 'CONSUFAST'].forEach(s => {
+                const btn = document.getElementById(`sbtn-${s}`);
+                if(s === key) {
+                    btn.className = "w-full text-left p-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 flex items-center justify-between transition-all";
+                } else {
+                    btn.className = "w-full text-left p-4 rounded-xl border border-slate-800 bg-slate-800/40 flex items-center justify-between hover:bg-slate-800 transition-all";
+                }
+            });
+
+            // Update details view
+            document.getElementById('detail-ticker').innerText = data.name;
+            document.getElementById('detail-sector').innerText = data.sector + ' Sector';
+            document.getElementById('detail-sharpe').innerText = data.sharpe;
+            document.getElementById('detail-return').innerText = data.return;
+            document.getElementById('detail-vol').innerText = data.vol;
+            document.getElementById('detail-mdd').innerText = data.mdd;
+            document.getElementById('detail-kurt').innerText = data.kurt;
+            document.getElementById('detail-insight').innerText = data.insight;
+
+            // Adjust distribution data simulation based on stock
+            if(key === 'TECHNOVA') {
+                stockDistChart.data.datasets[0].data = [5, 18, 45, 60, 48, 20, 6];
+            } else if(key === 'CONSUFAST') {
+                stockDistChart.data.datasets[0].data = [1, 8, 30, 110, 75, 15, 2];
+            } else {
+                stockDistChart.data.datasets[0].data = [3, 12, 38, 55, 40, 18, 4];
+            }
+            stockDistChart.update();
+            triggerNotification(`Loaded quantitative profile for ${key}`);
+        }
+    </script>
+</body>
+</html>
